@@ -742,6 +742,7 @@ func normalizeHosts(cfg *config.Config) error {
 		seen[host] = struct{}{}
 		hosts = append(hosts, host)
 	}
+	hosts = append(hosts, "unix://"+dopts.APISocket)
 	sort.Strings(hosts)
 	cfg.Hosts = hosts
 	return nil

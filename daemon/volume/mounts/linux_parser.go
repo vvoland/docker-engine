@@ -46,16 +46,9 @@ func (p *linuxParser) ValidateMountConfig(mnt *mount.Mount) error {
 }
 
 func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSourceExists bool) error {
-	if mnt.Target == "" {
-		return &errMountConfig{mnt, errMissingField("Target")}
-	}
-
-	if err := linuxValidateNotRoot(mnt.Target); err != nil {
-		return &errMountConfig{mnt, err}
-	}
-
-	if err := linuxValidateAbsolute(mnt.Target); err != nil {
-		return &errMountConfig{mnt, err}
+	err := p.validateMountTarget(mnt)
+	if err != nil {
+		return err
 	}
 
 	switch mnt.Type {
@@ -76,6 +69,12 @@ func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSour
 		}
 		if mnt.ImageOptions != nil {
 			return &errMountConfig{mnt, errExtraField("ImageOptions")}
+		}
+		if mnt.TmpfsOptions != nil {
+			return &errMountConfig{mnt, errExtraField("TmpfsOptions")}
+		}
+		if mnt.APISocketOptions != nil {
+			return &errMountConfig{mnt, errExtraField("APISocketOptions")}
 		}
 
 		if err := linuxValidateAbsolute(mnt.Source); err != nil {
@@ -101,6 +100,12 @@ func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSour
 		if mnt.ImageOptions != nil {
 			return &errMountConfig{mnt, errExtraField("ImageOptions")}
 		}
+		if mnt.TmpfsOptions != nil {
+			return &errMountConfig{mnt, errExtraField("TmpfsOptions")}
+		}
+		if mnt.APISocketOptions != nil {
+			return &errMountConfig{mnt, errExtraField("APISocketOptions")}
+		}
 		anonymousVolume := mnt.Source == ""
 
 		if mnt.VolumeOptions != nil && mnt.VolumeOptions.Subpath != "" {
@@ -119,8 +124,14 @@ func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSour
 		if mnt.BindOptions != nil {
 			return &errMountConfig{mnt, errExtraField("BindOptions")}
 		}
+		if mnt.VolumeOptions != nil {
+			return &errMountConfig{mnt, errExtraField("VolumeOptions")}
+		}
 		if mnt.ImageOptions != nil {
 			return &errMountConfig{mnt, errExtraField("ImageOptions")}
+		}
+		if mnt.APISocketOptions != nil {
+			return &errMountConfig{mnt, errExtraField("APISocketOptions")}
 		}
 		if mnt.Source != "" {
 			return &errMountConfig{mnt, errExtraField("Source")}
@@ -135,6 +146,12 @@ func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSour
 		if mnt.VolumeOptions != nil {
 			return &errMountConfig{mnt, errExtraField("VolumeOptions")}
 		}
+		if mnt.TmpfsOptions != nil {
+			return &errMountConfig{mnt, errExtraField("TmpfsOptions")}
+		}
+		if mnt.APISocketOptions != nil {
+			return &errMountConfig{mnt, errExtraField("APISocketOptions")}
+		}
 		if mnt.Source == "" {
 			return &errMountConfig{mnt, errMissingField("Source")}
 		}
@@ -143,8 +160,42 @@ func (p *linuxParser) validateMountConfigImpl(mnt *mount.Mount, validateBindSour
 				return &errMountConfig{mnt, errInvalidSubpath}
 			}
 		}
+	case mount.TypeAPISocket:
+		if mnt.BindOptions != nil {
+			return &errMountConfig{mnt, errExtraField("BindOptions")}
+		}
+		if mnt.VolumeOptions != nil {
+			return &errMountConfig{mnt, errExtraField("VolumeOptions")}
+		}
+		if mnt.TmpfsOptions != nil {
+			return &errMountConfig{mnt, errExtraField("TmpfsOptions")}
+		}
+		if mnt.ImageOptions != nil {
+			return &errMountConfig{mnt, errExtraField("ImageOptions")}
+		}
+		if mnt.Source != "" {
+			return &errMountConfig{mnt, errExtraField("Source")}
+		}
 	default:
 		return &errMountConfig{mnt, errors.New("mount type unknown")}
+	}
+	return nil
+}
+
+func (p *linuxParser) validateMountTarget(mnt *mount.Mount) error {
+	if mnt.Target == "" {
+		if mnt.Type == mount.TypeAPISocket {
+			return nil
+		}
+		return &errMountConfig{mnt, errMissingField("Target")}
+	}
+
+	if err := linuxValidateNotRoot(mnt.Target); err != nil {
+		return &errMountConfig{mnt, err}
+	}
+
+	if err := linuxValidateAbsolute(mnt.Target); err != nil {
+		return &errMountConfig{mnt, err}
 	}
 	return nil
 }
@@ -386,6 +437,12 @@ func (p *linuxParser) parseMountSpec(cfg mount.Mount, validateBindSourceExists b
 			// default propagation mode.
 			mp.Propagation = linuxDefaultPropagationMode
 		}
+	case mount.TypeAPISocket:
+		target := cfg.Target
+		if target == "" {
+			mp.Destination = "/var/run/docker.sock"
+		}
+
 	default:
 		// TODO(thaJeztah): make switch exhaustive: anything to do for mount.TypeNamedPipe, mount.TypeCluster ?
 	}

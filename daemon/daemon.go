@@ -33,10 +33,12 @@ import (
 	"github.com/moby/buildkit/util/tracing"
 	"github.com/moby/locker"
 	containertypes "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
 	networktypes "github.com/moby/moby/api/types/network"
 	registrytypes "github.com/moby/moby/api/types/registry"
 	"github.com/moby/moby/api/types/swarm"
 	"github.com/moby/moby/v2/daemon/internal/nri"
+	dopts "github.com/moby/moby/v2/daemon/pkg/opts"
 	"github.com/moby/sys/user"
 	"github.com/moby/sys/userns"
 	"github.com/pkg/errors"
@@ -187,6 +189,15 @@ func (daemon *Daemon) config() *configStore {
 // Config returns daemon's config.
 func (daemon *Daemon) Config() config.Config {
 	return daemon.config().Config
+}
+
+// engineSocket returns the first Unix socket from the daemon's configured hosts.
+// Returns an error if no Unix socket is configured.
+func (daemon *Daemon) engineSocket(_ string, opts *mount.APISocketOptions) (string, error) {
+	if opts != nil && opts.Access != mount.AccessUnconfined {
+		return "", fmt.Errorf("API socket access %q is not supported", opts.Access)
+	}
+	return dopts.APISocket, nil
 }
 
 // HasExperimental returns whether the experimental features of the daemon are enabled or not
