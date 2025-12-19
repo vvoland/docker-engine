@@ -288,7 +288,7 @@ func (daemon *Daemon) registerMountPoints(ctr *container.Container, defaultReadO
 		}
 
 		if mp.Type == mounttypes.TypeAPISocket {
-			socket, err := daemon.engineSocket(ctr.ID, cfg.APISocketOptions)
+			socket, err := daemon.apiSocket(ctr.ID, cfg.APISocketOptions)
 			if err != nil {
 				return err
 			}
