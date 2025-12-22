@@ -293,6 +293,7 @@ func (daemon *Daemon) registerMountPoints(ctr *container.Container, defaultReadO
 				return err
 			}
 			mp.Source = socket
+			log.L.Errorf("daemon.registerMountPoints: mount api socket: %+v", mp)
 		}
 		binds[mp.Destination] = true
 		dereferenceIfExists(mp.Destination)
